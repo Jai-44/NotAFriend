@@ -1,0 +1,54 @@
+# -----------------------
+# Node / Backend
+# -----------------------
+# Node modules
+server/node_modules/
+
+# Environment variables
+server/.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Prisma
+server/prisma/dev.db          # SQLite dev DB (if any)
+server/generated/            # Optional: generated Prisma client
+
+# Build outputs
+server/dist/
+server/build/
+
+# -----------------------
+# React / Frontend
+# -----------------------
+# Node modules
+client/node_modules/
+
+# Build outputs
+client/build/
+
+# Environment variables
+client/.env
+
+# -----------------------
+# OS / Editor / IDE
+# -----------------------
+# macOS
+.DS_Store
+
+# Linux swap files
+*.swp
+
+# VS Code
+.vscode/
+
+# -----------------------
+# Misc / Temporary
+# -----------------------
+*.tmp
+*.temp
+coverage/
