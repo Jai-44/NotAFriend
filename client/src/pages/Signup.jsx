@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { auth } from "./../services/api.js"
 
@@ -8,6 +9,7 @@ function Signup() {
 	const [password, setPassword] = useState('');
 	const [name, setName] = useState('');
 	const [errors, setErrors] = useState({})
+	const [banner, setBanner] = useState(null)
 
 	//Form Validation
 	const formValidation = () => {
@@ -18,8 +20,8 @@ function Signup() {
 
 		if (!password) {
 			errors.password = "Password Required!"
-		} else if (password.length() < 6) {
-			errors.password = "Password Length Should be 6"
+		} else if (password.length < 6) {
+			errors.password = "Password length should be at least 6"
 		}
 
 		return errors;
@@ -32,40 +34,45 @@ function Signup() {
 
 		const validationErrors = formValidation();
 		setErrors(validationErrors);
+		setBanner(null);
 
 		if (Object.keys(validationErrors).length === 0) {
 
 			const response = await auth(username, password, name);
 
-			if (response.status === 200) {
-				const token = response.data.token
-				const userId = response.data.userId
-
-				localStorage.setItem("chatAppToken", token)
-				localStorage.setItem("userId", userId)
+			// Backend signup returns 201 with { success, user } and no token
+			if (response.status === 201 && response.data?.success) {
+				setErrors({});
+				setBanner({ type: "success", text: "Signup successful. Please log in." });
 
 			} else {
-
-				console.error("Signup failed:", response.data.message)
+				const msg = response.data?.message || "Signup failed"
+				console.error("Signup failed:", msg)
 				setErrors({
 					username: response.data.username || "",
-					password: response.data.password || response.data.message || "",
+					password: response.data.password || msg || "",
 				})
+				setBanner({ type: "error", text: msg })
 			}
 		}
 	}
 
 	return (
 		<div>
-			<h1>Login</h1>
+			<h1>Signup</h1>
+			{banner && (
+				<div style={{ color: banner.type === "error" ? "red" : "green" }}>
+					{banner.text}
+				</div>
+			)}
 			<form onSubmit={handleSubmit}>
 				<div>
 					<label> Name </label>
-					<input type="email" value={name} onChange={(e) => setName(e.target.value)} />
+					<input type="text" value={name} onChange={(e) => setName(e.target.value)} />
 				</div>
 				<div>
 					<label>User Name </label>
-					<input type="email" value={username} onChange={(e) => setUsername(e.target.value)} />
+					<input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
 					{errors.username && ((
 						<span style={{ color: "red" }}>{errors.username}</span>
 					))}
@@ -78,10 +85,11 @@ function Signup() {
 					))}
 
 				</div>
-				<button type="submit">Login</button>
+				<button type="submit">Signup</button>
 			</form>
 		</div>
 	)
 }
 
 export default Signup;
+

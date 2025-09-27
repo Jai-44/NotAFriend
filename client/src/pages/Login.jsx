@@ -1,82 +1,112 @@
 import { useState } from "react";
-import { auth } from "./../services/api.js"
+import { auth } from "./../services/api.js";
 
 function Login() {
+	const [username, setUsername] = useState("");
+	const [password, setPassword] = useState("");
+	const [errors, setErrors] = useState({});
+	const [loading, setLoading] = useState(false);
+	const [banner, setBanner] = useState(null); // general messages
 
-	// User Credentials
-	const [username, setUsername] = useState('');
-	const [password, setPassword] = useState('');
-	const [errors, setErrors] = useState({})
+	// Client-side validation aligned with backend constraints
+	const validate = (u, p) => {
+		const errs = {};
+		if (!u) errs.username = "Username required";
+		if (!p) errs.password = "Password required";
+		else if (p.length < 6) errs.password = "Password must be at least 6 characters";
+		return errs;
+	};
 
-	//Form Validation
-	const formValidation = () => {
-		const errors = {};
-		if (!username) {
-			errors.username = "Username Required!"
-		}
-
-		if (!password) {
-			errors.password = "Password Required!"
-		} else if (password.length() < 6) {
-			errors.password = "Password Length Should be 6"
-		}
-
-		return errors;
-	}
-
-	//Submit Handler
 	const handleSubmit = async (e) => {
-
 		e.preventDefault();
 
-		const validationErrors = formValidation();
-		setErrors(validationErrors);
+		const u = username.trim();
+		const p = password;
 
-		if (Object.keys(validationErrors).length === 0) {
+		const v = validate(u, p);
+		setErrors(v);
+		setBanner(null);
+		if (Object.keys(v).length > 0) return;
 
-			const response = await auth(username, password);
+		try {
+			setLoading(true);
+			const res = await auth(u, p);
 
-			if (response.status === 200) {
-				const token = response.data.token
-				const userId = response.data.userId
+			// Success: { success: true, user: { id, username, name }, token }
+			if (res.status === 200 && res.data?.success) {
+				const token = res.data.token;
+				const user = res.data.user;
 
-				localStorage.setItem("chatAppToken", token)
-				localStorage.setItem("userId", userId)
+				if (token) localStorage.setItem("chatAppToken", token);
+				if (user?.id != null) localStorage.setItem("userId", String(user.id));
 
-			} else {
-
-				console.error("Login failed:", response.data.message)
-				setErrors({
-					username: response.data.username || "",
-					password: response.data.password || response.data.message || "",
-				})
+				setErrors({});
+				setBanner({ type: "success", text: "Login successful" });
+				// TODO: navigate("/chat") or similar
+				return;
 			}
+
+			// Non-200 or unexpected shape
+			const msg = res.data?.message || "Login failed";
+			// Backend returns only a generic message for invalid credentials
+			setErrors({ username: "", password: msg });
+			setBanner({ type: "error", text: msg });
+		} catch (err) {
+			// Axios-like error normalization
+			const msg =
+				err.response?.data?.message ||
+				err.message ||
+				"Network or server error";
+			setErrors({ username: "", password: msg });
+			setBanner({ type: "error", text: msg });
+		} finally {
+			setLoading(false);
 		}
-	}
+	};
 
 	return (
 		<div>
 			<h1>Login</h1>
+
+			{banner && (
+				<div style={{ color: banner.type === "error" ? "red" : "green" }}>
+					{banner.text}
+				</div>
+			)}
+
 			<form onSubmit={handleSubmit}>
 				<div>
-					<label>User Name </label>
-					<input type="email" value={username} onChange={(e) => setUsername(e.target.value)} />
-					{errors.username && ((
+					<label>Username</label>
+					<input
+						type="text" // use "email" only if the backend authenticates by email
+						value={username}
+						onChange={(e) => setUsername(e.target.value)}
+						autoComplete="username"
+					/>
+					{errors.username && (
 						<span style={{ color: "red" }}>{errors.username}</span>
-					))}
+					)}
 				</div>
+
 				<div>
 					<label>Password</label>
-					<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-					{errors.password && ((
+					<input
+						type="password"
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						autoComplete="current-password"
+					/>
+					{errors.password && (
 						<span style={{ color: "red" }}>{errors.password}</span>
-					))}
-
+					)}
 				</div>
-				<button type="submit">Login</button>
+
+				<button type="submit" disabled={loading}>
+					{loading ? "Logging in..." : "Login"}
+				</button>
 			</form>
 		</div>
-	)
+	);
 }
 
 export default Login;
