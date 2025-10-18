@@ -47,6 +47,10 @@ export const getRandom = async (user) => {
 	if (existing) return existing;
 
 	while (Date.now() - start < TIMEOUT_MS) {
+
+		const existing = await redis.hGet("friends", user);
+		if (existing) return existing;
+
 		const friend = await redis.sRandMember("activeUsers");
 		if (!friend || friend === user) {
 			await new Promise(r => setTimeout(r, INTERVAL_MS));
